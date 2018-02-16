@@ -11,7 +11,7 @@ var MongoClient = require('mongodb').MongoClient;
 var url = "mongodb://user:pw@ds235778.mlab.com:35778/patten_games";
 
 var app = express();
-var usernameToDisplay = "noUser";
+var usernameToDisplay = "";
 
 app.set('views', path.resolve(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -56,7 +56,7 @@ passport.use(new LocalStrategy({
 			dbObj.collection("users").findOne({username:username}, function(err,results){
 				if(results.password == password){
 					var user = results;
-					usernameToDisplay = user.usernameField;
+					usernameToDisplay = user.username;
 					done(null, user);
 				}
 				else{
@@ -99,6 +99,10 @@ app.get("/", ensureAuthenticated, function(request,response){
 
 app.get("/new-entry",ensureAuthenticated, function(request,response){
 	response.render("new-entry",{usernameToDisplay:usernameToDisplay});
+});
+
+app.get("/create-topic", function(request,response){
+	response.render("create-topic",{usernameToDisplay:usernameToDisplay});
 });
 
 app.get("/sign-in", function(request,response){
@@ -145,8 +149,9 @@ app.post("/sign-up", function(request,response){
 	dbObj.collection('users').insert(user,function(err, results){
 			if(err)throw err;
 			
-				request.login(request.body, function(){
-				response.redirect('/');
+			request.login(request.body, function(){
+			response.redirect('/');
+			usernameToDisplay = user.username;
 			});
 		});
 	});
@@ -162,11 +167,10 @@ app.post("/sign-in", passport.authenticate('local', {
 app.get('/profile', function(request,response){
 		response.json(request.user);
 });
+
 app.use(function(request, response){
 	response.status(404).render("404");
 });
-
-
 
 http.createServer(app).listen(3000, function(){
 	console.log("Game library server started on port 3000");
