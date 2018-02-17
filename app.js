@@ -1,4 +1,3 @@
-//After changing windows credentials
 var http = require('http');
 var path = require('path');
 var express = require('express');
@@ -12,13 +11,11 @@ var url = "mongodb://user:pw@ds235778.mlab.com:35778/patten_games";
 
 var app = express();
 var usernameToDisplay = "";
+var defaultList = "No list selected";
+var currentList = defaultList;
 
 app.set('views', path.resolve(__dirname, 'views'));
 app.set('view engine', 'ejs');
-
-//var entries = [];
-
-//app.locals.entries = entries;
 
 app.use(logger("dev"));
 
@@ -79,6 +76,7 @@ function ensureAuthenticated(req, res, next){
 app.get('/logout', function(req, res){
 	req.logout();
 	usernameToDisplay = "";
+	currentList = defaultList;
 	res.redirect("/sign-in");
 });
 
@@ -87,10 +85,10 @@ app.get("/", ensureAuthenticated, function(request,response){
 		if(err)throw err;
 		var dbObj= db.db("patten_games");
 		
-		dbObj.collection("games").find().toArray(function(err, results){
+		dbObj.collection(currentList).find().toArray(function(err, results){
 			console.log("Site Served");
 			db.close();
-			response.render("index",{games:results, usernameToDisplay:usernameToDisplay});
+			response.render("index",{currentList:currentList, list:results, usernameToDisplay:usernameToDisplay});
 		});
 		
 	});
@@ -98,41 +96,34 @@ app.get("/", ensureAuthenticated, function(request,response){
 });
 
 app.get("/new-entry",ensureAuthenticated, function(request,response){
-	response.render("new-entry",{usernameToDisplay:usernameToDisplay});
+	response.render("new-entry",{currentList:currentList, usernameToDisplay:usernameToDisplay});
 });
 
-app.get("/create-topic", function(request,response){
-	response.render("create-topic",{usernameToDisplay:usernameToDisplay});
+app.get("/select-list", function(request,response){
+	response.render("select-list",{currentList:currentList, usernameToDisplay:usernameToDisplay});
 });
 
 app.get("/sign-in", function(request,response){
-	response.render("sign-in",{usernameToDisplay:usernameToDisplay});
+	response.render("sign-in",{currentList:currentList, usernameToDisplay:usernameToDisplay});
 });
 
 app.post("/new-entry", function(request,response){
-	if(!request.body.title||!request.body.body){
+	if(!request.body.title){
 		response.status(400).send("Entries must have some text!");
 		return;
 	}
-	//connected to our database and saved the games
+	//connect to database and save the item
 	MongoClient.connect(url, function(err, db){
 		if(err)throw err;
 		
 		var dbObj = db.db("patten_games");
 		
-		dbObj.collection("games").save(request.body, function(err, result){
+		dbObj.collection(currentList).save(request.body, function(err, result){
 			console.log("data saved");
 			db.close();
 			response.redirect("/");
-		});
-		
+		});		
 	});
-	/*entries.push({
-		title:request.body.title,
-		body:request.body.body,
-		published:new Date()
-	});*/
-	//response.redirect("/");
 });
 
 app.post("/sign-up", function(request,response){
@@ -150,7 +141,7 @@ app.post("/sign-up", function(request,response){
 			if(err)throw err;
 			
 			request.login(request.body, function(){
-			response.redirect('/');
+			response.redirect('/select-list');
 			usernameToDisplay = user.username;
 			});
 		});
@@ -161,7 +152,12 @@ app.post("/sign-up", function(request,response){
 app.post("/sign-in", passport.authenticate('local', {
 	failureRedirect:'/sign-in'
 	}), function(request,response){
-			response.redirect('/');
+			response.redirect('/select-list');
+});
+
+app.post("/select-list", function(request, response){
+	currentList = request.body.listName;
+	response.redirect("/");	
 });
 
 app.get('/profile', function(request,response){
@@ -169,14 +165,9 @@ app.get('/profile', function(request,response){
 });
 
 app.use(function(request, response){
-	response.status(404).render("404");
+	response.status(404).render("404", {currentList:currentList, usernameToDisplay:usernameToDisplay});
 });
 
 http.createServer(app).listen(3000, function(){
 	console.log("Game library server started on port 3000");
 });
-
-
-
-
-

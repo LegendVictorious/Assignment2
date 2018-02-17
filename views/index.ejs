@@ -1,19 +1,16 @@
 <% include header %>
-<% if(games.length){ %>
-	<% games.forEach(function(game){ %>
+<% if(list.length){ %>
+	<% list.forEach(function(item){ %>
 	<div class="panel panel-default">
 		<div class="panel-heading">
 			<div class="text-muted pull-right">
-				<%= game.published %>
+				<%= item.published %>
 			</div>
-			<%= game.title %>
-		</div>
-		<div class="panel-body">
-			<%= game.body %>
+			<%= item.title %>
 		</div>
 	</div>
 	<% }) %>
 	<% } else { %>
-	No entries! <a href="/new-entry">Add a game?</a>
+	No entries! <a href="/new-entry">Add an item?</a>
 	<% } %>
 <% include footer %>
